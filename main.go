@@ -14,6 +14,16 @@ import (
 	"golang.org/x/image/font/gofont/goregular"
 )
 
+const (
+	virtualHeight = 200
+	virtualWidth  = 200
+)
+
+var (
+	uiImg        = ebiten.NewImage(virtualWidth, virtualHeight)
+	uiImgOptions = &ebiten.DrawImageOptions{}
+)
+
 type game struct {
 	ui *ebitenui.UI
 }
@@ -86,7 +96,7 @@ func main() {
 
 	err := ebiten.RunGame(&game)
 	if err != nil {
-		log.Print(err)
+		log.Fatal(err)
 	}
 }
 
@@ -97,10 +107,26 @@ func (g *game) Update() error {
 }
 
 func (g *game) Draw(screen *ebiten.Image) {
-	g.ui.Draw(screen)
+	screenBounds := screen.Bounds()
+	widthScale := float64(screenBounds.Dx()) / virtualWidth
+	heightScale := float64(screenBounds.Dy()) / virtualWidth
+
+	uiImgOptions.GeoM.Scale(widthScale, heightScale)
+
+	g.ui.Draw(uiImg)
+	screen.DrawImage(uiImg, uiImgOptions)
+
+	uiImg.Clear()
+	uiImgOptions.GeoM.Reset()
 }
 
 func (g *game) Layout(outsideWidth int, outsideHeight int) (int, int) {
+	// I'm aware that the approach below will work,
+	// but I want to avoid actually scaling the game itself.
+	// If I do that, I lose out on being able to do things like
+	// adding a CRT shader in pixel art games, for example.
+	// return virtualWidth, virtualHeight
+
 	return outsideWidth, outsideHeight
 }
 
